@@ -124,6 +124,22 @@ module.exports = function ({ id, code, pkgBase, ast, scope, magicString, emitAss
         return { transformed: true };
       }
     }
+  } else if (id.endsWith('semver/index.js') || global._unit && id.includes('semver')) {
+    let transformed = false;
+    for (const statement of ast.body) {
+      if (statement.type === 'ExpressionStatement' &&
+          statement.expression.type === 'CallExpression' &&
+          statement.expression.callee.type === 'Identifier' &&
+          statement.expression.callee.name === 'lazyExport' &&
+          statement.expression.arguments.length >= 2 &&
+          statement.expression.arguments[1].type === 'Literal' &&
+          typeof statement.expression.arguments[1].value === 'string') {
+        const arg = statement.expression.arguments[1]
+        magicString.overwrite(arg.start, arg.end, `require.resolve(${JSON.stringify(arg.value)})`);
+        transformed = true;
+      }
+    }
+    return { transformed };
   }
   return { transformed: false };
 };
